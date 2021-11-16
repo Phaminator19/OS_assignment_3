@@ -38,11 +38,10 @@ public class SantaScenario {
 			th = new Thread(reindeer);
 			th.start();
 		}
-		int day = 0;
 
 		// now, start the passing of time
 
-		for (day = 1; day < 500; day++) {
+		for (int day = 1; day < 500; day++) {
 			// wait a day
 			try {
 				Thread.sleep(100);
@@ -72,20 +71,26 @@ public class SantaScenario {
 				}
 			}
 
+			if (day > 370) {
+				System.out.println("********************* Reindeer are gone after day 370 ****************************");
+				scenario.reindeers.clear();
+			}
+
 			// print out the state:
 				System.out.println("***********  Day " + day + " *************************");
 				scenario.santa.report();
-				for (Elf elf : scenario.elves) {
+				for (Elf elf : scenario.elves)
 					elf.report();
+				if (day < 370) {
 //					if (!elf.getThread().isAlive()) {
 //						System.out.println("elf thread is terminated");
 //					}
-				}
-				for (Reindeer reindeer : scenario.reindeers) {
-					reindeer.report();
-//					if (!reindeer.getThread().isAlive()) {
+					for (Reindeer reindeer : scenario.reindeers)
+						reindeer.report();
+						//	if (!reindeer.getThread().isAlive()) {
 //						System.out.println("reindeer thread is terminated");
 //					}
+
 				}
 		}
 	}

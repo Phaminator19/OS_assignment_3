@@ -5,6 +5,7 @@ public class Santa implements Runnable {
 
 	enum SantaState {SLEEPING, READY_FOR_CHRISTMAS, WOKEN_UP_BY_ELVES, WOKEN_UP_BY_REINDEER};
 	private SantaState state;
+	private SantaScenario scenario;
 
 	//added this
 	Thread mythread = null;
@@ -15,6 +16,7 @@ public class Santa implements Runnable {
 
 	public Santa(SantaScenario scenario) {
 		this.state = SantaState.SLEEPING;
+		this.scenario = scenario;
 	}
 
 	public void setState(SantaState state) {
@@ -51,7 +53,12 @@ public class Santa implements Runnable {
 					break;
 				case WOKEN_UP_BY_ELVES:
 					// FIXME: help the elves who are at the door and go back to sleep
-
+					for (Elf elf : scenario.elves) {
+						if(elf.getState() == Elf.ElfState.AT_SANTAS_DOOR) {
+							elf.setState(Elf.ElfState.WORKING);
+						}
+					}
+					state = SantaState.SLEEPING;
 					break;
 				case WOKEN_UP_BY_REINDEER:
 					// FIXME: assemble the reindeer to the sleigh then change state to ready
@@ -74,6 +81,18 @@ public class Santa implements Runnable {
 
 	public Thread getThread() {
 		return mythread;
+	}
+
+	//this method will change the state of Santa when there is a problem from the Elves or the Reindeer.
+	public void WakeUp(boolean isAwake) {
+		if (this.state == SantaState.SLEEPING) {
+			if (isAwake) {
+				setState(SantaState.WOKEN_UP_BY_ELVES);
+			}
+			else {
+				setState(SantaState.WOKEN_UP_BY_REINDEER);
+			}
+		}
 	}
 
 

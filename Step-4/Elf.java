@@ -5,7 +5,7 @@ public class Elf implements Runnable {
 
 	//An enum type is a special data type that enables for a variable to be a set of predefined constants.
 	enum ElfState {
-		WORKING, TROUBLE, AT_SANTAS_DOOR
+		WORKING, TROUBLE, AT_SANTAS_DOOR, Terminated
 	};
 
 	private ElfState state;
@@ -53,12 +53,14 @@ public class Elf implements Runnable {
 	@Override
 	public void run() {
 		this.isInTrouble = false;
-		while (!isStopThreadRequest()) {
+		//I will put everything inside the while loop that has a flag that makes the thread execution to stop if the boolean is true.
 			// wait a day
+		while(!isStopThreadRequest()) {
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				//TODO Auto-generated catch block
+				setState(ElfState.Terminated);
 				System.out.println("Elf Thread is canceled");
 				return;
 				//e.printStackTrace();
@@ -67,26 +69,28 @@ public class Elf implements Runnable {
 				case WORKING: {
 					// at each day, there is a 1% chance that an elf runs into
 					// trouble.
-					if (rand.nextDouble() < 0.01) {
-						state = ElfState.TROUBLE;
+					try {
+						if (rand.nextDouble() < 0.01) {
+							this.scenario.trouble.acquire();
+							state = ElfState.TROUBLE;
+							this.scenario.inTrouble.add(this);
+							this.scenario.trouble.release();
+						}
+					}catch (InterruptedException e) {
+						setState(ElfState.Terminated);
+						this.scenario.trouble.release();
+						return;
 					}
 					break;
 				}
 				case TROUBLE:
 					// FIXME: if possible, move to Santa's door
-//					this.scenario.inTrouble.add(this);
-//
-//					if(scenario.inTrouble.size() == 3) {
-//						for(Elf elf : scenario.inTrouble) {
-//							elf.setState(ElfState.AT_SANTAS_DOOR);
-//							scenario.atDoor.add(elf);
-//						}
-//						scenario.inTrouble.clear();
-// 						}
-						if(!isInTrouble) {
-							this.scenario.inTrouble.add(this);
-							isInTrouble = true;
-						}
+					try {
+						this.scenario.waitelf.acquire();
+					}catch (InterruptedException e) {
+						setState(ElfState.Terminated);
+						return;
+					}
 					break;
 				case AT_SANTAS_DOOR:
 					// FIXME: if feasible, wake up Santa
@@ -95,7 +99,6 @@ public class Elf implements Runnable {
 					break;
 			}
 		}
-
 	}
 
 	/**

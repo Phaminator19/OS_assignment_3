@@ -1,0 +1,39 @@
+void start(char *program_name) {
+    int pid = fork();
+    char *argv[] = {program_name, NULL};
+    
+    // Find result of fork call.
+    if(pid < 0)
+    {
+        perror("FORK FAILED\n");
+        return;
+    }
+    
+    else if (pid == 0) {
+    //this would check if the argument starts with "/" the shell should interpret it as full path then.
+    if (strchr(program_name, '/') != NULL) {
+            // Edits made by Joey
+            printf("Starting program: %s\n", program_name);
+            execv(argv[0], args);
+        }
+    }
+    //if the argument isn't start with "/ the shell should interpreted as a relative path."
+    else if (strchr(program_name, '/') == NULL) {
+        printf("Starting program: %s\n", program_name);
+        execv(args[0], args);
+        }
+    }
+    else {
+        perror("the execution failed.\n")
+    }
+
+    //check to see if we are in the parent process
+    if (pid>0) {
+        waitpid(pid, NULL, 0);
+    }
+    if (pid == 0) {
+        perror("the given program could not be found\n");
+
+        return;
+    }
+}

@@ -3,7 +3,7 @@ import java.util.concurrent.Semaphore;
 
 public class Santa implements Runnable {
 
-	enum SantaState {SLEEPING, READY_FOR_CHRISTMAS, WOKEN_UP_BY_ELVES, WOKEN_UP_BY_REINDEER};
+	enum SantaState {SLEEPING, READY_FOR_CHRISTMAS, WOKEN_UP_BY_ELVES, WOKEN_UP_BY_REINDEER, Terminated};
 	private SantaState state;
 	private SantaScenario scenario;
 	//stop requesting
@@ -45,9 +45,18 @@ public class Santa implements Runnable {
 					break;
 				case WOKEN_UP_BY_ELVES:
 					// FIXME: help the elves who are at the door and go back to sleep
-					int size = this.scenario.atDoor.size();
-					for (int i = 0; i < size; i++) {
-						this.scenario.atDoor.remove().setState(Elf.ElfState.WORKING);
+					try {
+						this.scenario.door.acquire();
+						int size = this.scenario.atDoor.size();
+						for (int i = 0; i < size; i++) {
+							this.scenario.atDoor.remove().setState(Elf.ElfState.WORKING);
+						}
+						this.scenario.door.release();
+
+					} catch(InterruptedException e) {
+						this.scenario.door.release();
+						setState(SantaState.Terminated);
+						return;
 					}
 					state = SantaState.SLEEPING;
 					break;

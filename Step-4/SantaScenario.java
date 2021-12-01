@@ -13,6 +13,9 @@ public class SantaScenario {
 	//added new variables
 	public Queue<Elf> atDoor;
 	public Queue<Elf> inTrouble;
+	Semaphore waitelf = new Semaphore(0, true);
+	Semaphore trouble = new Semaphore(1, true);
+	Semaphore door = new Semaphore(1, true);
 
 
 	public boolean isDecember;
@@ -21,7 +24,8 @@ public class SantaScenario {
 	public static void main(String args[]) {
 		SantaScenario scenario = new SantaScenario();
 		//create a semaphore
-		Semaphore sema = new Semaphore(1);
+
+
 
 		scenario.isDecember = false;
 		// create the participants
@@ -67,46 +71,53 @@ public class SantaScenario {
 				scenario.isDecember = true;
 			}
 
-			//day 370 terminate threads using deferred termination NO interrupt() or InterruptedException
-			if (day == 370) {
-				System.out.println("--------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Main Thread day is still counting<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<-----------");
-				System.out.println("--------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>The Santa Thread day is terminated<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<-----------");
-				System.out.println("--------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>The Elf Thread day is terminated<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<-----------");
-				System.out.println("--------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>The Reindeer Thread day is terminated<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<-----------");
-				scenario.santa.requestStop();
-
-				for (Elf elf : scenario.elves) {
-					elf.requestStop();
-				}
-				for (Reindeer reindeer : scenario.reindeers) {
-					reindeer.requestStop();
-				}
-			}
-
+			//day 370 terminate threads using deferred termination NO interrupt() or throw new InterruptedException()
 			if (day > 370) {
-				System.out.println("********************* Reindeer are gone after day 370 ****************************");
-				scenario.reindeers.clear();
+				scenario.santa.requestStop();
+				for (int i = 0; i != 10; i++) {
+					scenario.elves.get(i).requestStop();
+				}
+//				for (Reindeer reindeer : scenario.reindeers) {
+//					reindeer.requestStop();
+//				}
 			}
+
+//			if (day > 370) {
+//				System.out.println("********************* Reindeer are gone after day 370 ****************************");
+//				scenario.reindeers.clear();
+//			}
 
 			// print out the state:
 			System.out.println("***********  Day " + day + " *************************");
 			scenario.santa.report();
 			for (Elf elf : scenario.elves)
 				elf.report();
-
-			//check if the elf in queue are in trouble state and at least more than 2
-			if (scenario.inTrouble.size() > 2) {
-				//writing this will check if the queue at the door is empty. If it is, move all the trouble elf to the door.
-				if (scenario.atDoor.isEmpty()) {
-					int size = scenario.inTrouble.size();
-					for (int i = 0; i < size; i++) {
-						//this will get the elf with the trouble
-						Elf elf = scenario.inTrouble.remove();
-						elf.setState(Elf.ElfState.AT_SANTAS_DOOR);
-						scenario.atDoor.add(elf);
+			try {
+				scenario.trouble.acquire();
+				int size = scenario.inTrouble.size();
+				scenario.trouble.release();
+				//check if the elf in queue are in trouble state and at least more than 2
+				if (scenario.inTrouble.size() > 2  && day < 370) {
+					//writing this will check if the queue at the door is empty.
+					scenario.door.acquire();
+					if (scenario.atDoor.isEmpty()) {
+						scenario.trouble.acquire();
+						for (int i = 0; i < size; i++) {
+							//this will get the elf with the trouble
+							Elf elf = scenario.inTrouble.remove();
+							elf.setState(Elf.ElfState.AT_SANTAS_DOOR);
+							scenario.atDoor.add(elf);
+							scenario.waitelf.release();
+						}
+						scenario.trouble.release();
 					}
-
+					scenario.door.release();
 				}
+			} catch(InterruptedException e) {
+				scenario.trouble.release();
+				scenario.door.release();
+				return;
+			}
 //				if (day < 370) {
 ////					if (!elf.getThread().isAlive()) {
 ////						System.out.println("elf thread is terminated");
@@ -120,5 +131,4 @@ public class SantaScenario {
 //				}
 			}
 		}
-	}
 }

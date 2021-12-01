@@ -3,7 +3,7 @@ import java.util.concurrent.Semaphore;
 
 public class Reindeer implements Runnable {
 
-	public enum ReindeerState {AT_BEACH, AT_WARMING_SHED, AT_THE_SLEIGH};
+	public enum ReindeerState {AT_BEACH, AT_WARMING_SHED, AT_THE_SLEIGH, Terminated};
 	private ReindeerState state;
 	private SantaScenario scenario;
 
@@ -49,12 +49,23 @@ public class Reindeer implements Runnable {
 					if (scenario.isDecember) {
 						if (rand.nextDouble() < 0.1) {
 							state = ReindeerState.AT_WARMING_SHED;
+							scenario.numberOfWaitingReindeer++;
 						}
 					}
 					break;
 				}
 				case AT_WARMING_SHED:
 					// if all the reindeer are home, wake up santa
+					try {
+						if(scenario.numberOfWaitingReindeer > 8) {
+							scenario.santa.WakeUp(false);
+						}
+						scenario.waitReindeer.acquire();
+					}catch (InterruptedException e) {
+						scenario.waitReindeer.release();
+						state = ReindeerState.Terminated;
+						return;
+					}
 					break;
 				case AT_THE_SLEIGH:
 					// keep pulling
@@ -69,5 +80,7 @@ public class Reindeer implements Runnable {
 	public void report() {
 		System.out.println("Reindeer " + number + " : " + state);
 	}
-
+	public void setReindeerstate () {
+		state = ReindeerState.AT_THE_SLEIGH;
+	}
 }
